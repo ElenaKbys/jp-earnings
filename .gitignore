@@ -1,0 +1,22 @@
+# Secrets — NEVER commit
+.env
+
+# Private planning notes — not for the public repo
+PROJECT.md
+PREP.md
+
+# Data: large, re-fetchable, and redistribution is restricted by JPX terms
+data/
+*.duckdb
+*.duckdb.wal
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+venv/
+.venv/
+
+# OS
+.DS_Store
