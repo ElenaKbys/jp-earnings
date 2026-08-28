@@ -35,33 +35,19 @@ after 15:00 on date *t*, the first tradable reaction is the next business day,
 and that day is event day 0. If disclosure is before 15:00, date *t* is day 0.
 Getting this off by one shifts the entire event window.
 
-## Deviations from the original brief
-
-The brief was written in Aug 2026 against the v1 API and needs three corrections.
-
-**1. All endpoint paths changed in API v2.**
-
-| Brief (v1) | Actual (v2) |
-|---|---|
-| `/listed/info` | `/equities/master` |
-| `/prices/daily_quotes` | `/equities/bars/daily` |
-| `/fins/statements` | `/fins/summary` |
-| `/fins/announcement` | `/fins/earnings-date` |
-| `/indices/topix` | `/indices/bars/daily/topix` |
+## API notes
 
 Base URL is `https://api.jquants.com/v2`. Authentication is a single API key
-in an `x-api-key` header — not the email/password → refreshToken → idToken
-flow the brief describes, which was v1.
+in an `x-api-key` header.
 
-**2. TOPIX is not on the free plan.** `/indices/bars/daily/topix` requires the
-Light plan. The market model therefore uses an equal-weighted index built from
-the cross-section of the sample universe. This is a standard alternative, and
-it has a wrinkle worth stating: because announcements cluster in the same
+**TOPIX is not on the free plan.** The market model therefore uses an
+equal-weighted index built from the cross-section of the sample universe.
+This has a wrinkle worth stating: because announcements cluster in the same
 fortnight, the constructed index is itself partly composed of announcing firms,
 so it absorbs some of the very effect being measured. This biases the estimated
 drift **towards zero**, making the test conservative.
 
-**3. SUE (surprise Option A) is not feasible on the free plan.** The seasonal
+**SUE (surprise Option A) is not feasible on the free plan.** The seasonal
 random walk needs 8 seasonal differences, so ~12 quarters of earnings history.
 The free plan carries 2 years — 8 quarters. Option B (announcement-window
 return) is therefore the primary and only surprise measure.

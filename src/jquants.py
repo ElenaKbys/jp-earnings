@@ -133,12 +133,7 @@ def fetch(endpoint: str, params: dict | None = None, *, use_cache: bool = True) 
 
 # --- Endpoint wrappers -------------------------------------------------
 # Paths verified against the official v2 quickstart notebook (Aug 2026).
-# The PROJECT.md brief lists v1 paths; they have all been renamed.
-#   /listed/info        -> /equities/master
-#   /prices/daily_quotes-> /equities/bars/daily
-#   /fins/statements    -> /fins/summary
-#   /fins/announcement  -> /fins/earnings-date
-#   /indices/topix      -> /indices/bars/daily/topix   (NOT on the free plan)
+# /indices/bars/daily/topix is NOT on the free plan.
 
 
 def trading_calendar(from_date: str = "", to_date: str = "") -> list[dict]:
