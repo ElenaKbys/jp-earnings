@@ -1,23 +1,19 @@
 # Post-Earnings-Announcement Drift in Japanese Equities
 
-Does the Japanese market fully price earnings news on the day it lands, or
-does the stock keep drifting in the same direction for weeks afterward? This
-is a data pipeline and event study built to find out.
+Does the Japanese market actually price earnings news on day one, or do stocks keep drifting in the same direction for weeks? This repo is a data pipeline and event study built to find out.
 
-**Status:** in progress.
+**Status:** Work in progress.
 
 ---
 
 ## Pre-registered specification
 
-The table below was locked in before looking at any results. That's the whole
-point of pre-registering it: once real numbers come back, the robustness
-checks further down can't quietly turn into specification search.
+I locked in the table below before running any numbers to avoid p-hacking or accidental specification searching once the results are in. 
 
 | Choice | Primary specification |
 |---|---|
 | Universe | TSE Prime constituents, liquidity-filtered |
-| Event | First disclosure of a quarterly/annual earnings summary (tanshin) |
+| Event | First disclosure of a quarterly/annual earnings summary (*tanshin*) |
 | Day 0 | First tradable session after disclosure (see convention below) |
 | Estimation window | `[-150, -30]` trading days |
 | Event window | `[-1, +60]` trading days; drift measured over `[+2, +60]` |
@@ -27,55 +23,23 @@ checks further down can't quietly turn into specification search.
 | Headline number | `Q5 - Q1` cumulative abnormal return over `[+2, +60]` |
 | Inference | Naive t-stat reported, then standard errors clustered by announcement date |
 
-A few alternatives — market-adjusted returns (beta forced to 1), other event
-windows, other liquidity thresholds — get reported too, but only as
-robustness, never as options to pick a winner from.
+I do look at a few alternatives (market-adjusted returns, different event windows, stricter liquidity filters), but strictly as robustness checks, not cherry-picked replacements for the primary spec.
 
 ## Day-0 convention
 
-Most tanshin drop after the 15:30 close, so timing matters more than it
-sounds like it should. If disclosure happens at or after 15:00 on date *t*,
-nobody can trade on it until the next session, so that next day becomes event
-day 0. Anything before 15:00 and date *t* itself is day 0. Get this wrong by
-one day and the entire event window shifts with it.
+In Japan, most *tanshin* drop after the 15:30 close, so timing is tricky. If a disclosure hits at or after 15:00 on date *t*, no one can trade it until the next session, making the *next* day event day 0. Anything before 15:00 makes date *t* day 0. Mess this up by a single day, and the entire event window is off.
 
 ## API notes
 
-Base URL is `https://api.jquants.com/v2`, authenticated with a single API key
-in an `x-api-key` header. Straightforward enough — the free plan is where the
-real constraints live.
+I'm using the [J-Quants API](https://api.jquants.com/v2) with a standard `x-api-key` header. The setup is simple, but the constraints of their free tier dictated a lot of the architecture:
 
-**TOPIX isn't on the free plan**, so the market model uses an equal-weighted
-index built from the sample universe itself instead. That has a wrinkle worth
-flagging: announcements cluster in the same fortnight, so the constructed
-index ends up partly composed of the very firms being studied, and it absorbs
-some of the effect it's supposed to be a benchmark against. That biases the
-estimated drift **towards zero** — not a fatal flaw, just something that makes
-the test conservative rather than invalid.
-
-**SUE Option A is off the table too.** It needs a seasonal random walk over 8
-seasonal differences, which means ~12 quarters of earnings history, and the
-free plan only goes back 2 years (8 quarters). So Option B —
-announcement-window return — isn't just the primary surprise measure, it's
-the only one available.
-
-The plan's other limits — 12-week data delay, **5 requests/minute** — are
-what actually shaped the fetching strategy. That rate limit is why everything
-is pulled by date instead of by security code: one request returns the whole
-day's cross-section (~490 requests total) rather than one request per stock
-(~4,000 requests, and a much longer wait).
+*   **No TOPIX on the free plan.** Because of this, the market model relies on an equal-weighted index built from our sample universe. There's a catch here: Japanese earnings announcements cluster heavily in specific weeks. As a result, the benchmark index ends up containing the very stocks we're studying, which absorbs some of the anomaly. This biases the drift estimate **towards zero**. It makes the test more conservative, but it’s worth keeping in mind.
+*   **SUE (Standardized Unexpected Earnings) Option A is out.** Calculating a seasonal random walk requires about 12 quarters of history, but the free plan only gives us 2 years (8 quarters). That makes announcement-window return (Option B) our only viable surprise measure.
+*   **Rate limits.** The free tier has a 12-week data delay and a hard limit of **5 requests/minute**. To avoid getting throttled, the pipeline fetches data by date rather than by ticker. Pulling by date grabs the whole cross-section in one request (~490 requests total) instead of taking hours to pull ~4,000 individual stocks.
 
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env    # then paste your key from https://jpx-jquants.com/
+cp .env.example .env    # then paste your key from [https://jpx-jquants.com/](https://jpx-jquants.com/)
 python src/discover.py  # verify the key and inspect live response schemas
-```
-
-## Sources
-
-Standing on the shoulders of Ball & Brown (1968), Bernard & Thomas (1989,
-1990), MacKinlay (1997), and Boehmer, Musumeci & Poulsen (1991) — the drift
-itself, the standard event-study machinery, and the case for clustering
-standard errors by event date all come from this line of work.
