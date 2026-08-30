@@ -1,7 +1,8 @@
 # Post-Earnings-Announcement Drift in Japanese Equities
 
-Measuring whether Japanese stock prices fully incorporate earnings news on the
-day it arrives, or keep drifting for weeks afterwards.
+Does the Japanese market fully price earnings news on the day it lands, or
+does the stock keep drifting in the same direction for weeks afterward? This
+is a data pipeline and event study built to find out.
 
 **Status:** in progress.
 
@@ -9,8 +10,9 @@ day it arrives, or keep drifting for weeks afterwards.
 
 ## Pre-registered specification
 
-Written before looking at any results, so that the robustness checks below
-cannot be mistaken for specification search.
+The table below was locked in before looking at any results. That's the whole
+point of pre-registering it: once real numbers come back, the robustness
+checks further down can't quietly turn into specification search.
 
 | Choice | Primary specification |
 |---|---|
@@ -25,37 +27,43 @@ cannot be mistaken for specification search.
 | Headline number | `Q5 - Q1` cumulative abnormal return over `[+2, +60]` |
 | Inference | Naive t-stat reported, then standard errors clustered by announcement date |
 
-Reported as robustness, **not** selected between: market-adjusted returns
-(beta forced to 1), alternative event windows, alternative liquidity thresholds.
+A few alternatives — market-adjusted returns (beta forced to 1), other event
+windows, other liquidity thresholds — get reported too, but only as
+robustness, never as options to pick a winner from.
 
 ## Day-0 convention
 
-Most tanshin are released after the 15:30 close. If disclosure happens at or
-after 15:00 on date *t*, the first tradable reaction is the next business day,
-and that day is event day 0. If disclosure is before 15:00, date *t* is day 0.
-Getting this off by one shifts the entire event window.
+Most tanshin drop after the 15:30 close, so timing matters more than it
+sounds like it should. If disclosure happens at or after 15:00 on date *t*,
+nobody can trade on it until the next session, so that next day becomes event
+day 0. Anything before 15:00 and date *t* itself is day 0. Get this wrong by
+one day and the entire event window shifts with it.
 
 ## API notes
 
-Base URL is `https://api.jquants.com/v2`. Authentication is a single API key
-in an `x-api-key` header.
+Base URL is `https://api.jquants.com/v2`, authenticated with a single API key
+in an `x-api-key` header. Straightforward enough — the free plan is where the
+real constraints live.
 
-**TOPIX is not on the free plan.** The market model therefore uses an
-equal-weighted index built from the cross-section of the sample universe.
-This has a wrinkle worth stating: because announcements cluster in the same
-fortnight, the constructed index is itself partly composed of announcing firms,
-so it absorbs some of the very effect being measured. This biases the estimated
-drift **towards zero**, making the test conservative.
+**TOPIX isn't on the free plan**, so the market model uses an equal-weighted
+index built from the sample universe itself instead. That has a wrinkle worth
+flagging: announcements cluster in the same fortnight, so the constructed
+index ends up partly composed of the very firms being studied, and it absorbs
+some of the effect it's supposed to be a benchmark against. That biases the
+estimated drift **towards zero** — not a fatal flaw, just something that makes
+the test conservative rather than invalid.
 
-**SUE (surprise Option A) is not feasible on the free plan.** The seasonal
-random walk needs 8 seasonal differences, so ~12 quarters of earnings history.
-The free plan carries 2 years — 8 quarters. Option B (announcement-window
-return) is therefore the primary and only surprise measure.
+**SUE Option A is off the table too.** It needs a seasonal random walk over 8
+seasonal differences, which means ~12 quarters of earnings history, and the
+free plan only goes back 2 years (8 quarters). So Option B —
+announcement-window return — isn't just the primary surprise measure, it's
+the only one available.
 
-Free-plan limits that shaped the design: 2 years of history, 12-week delay,
-**5 requests/minute**. The rate limit is why all fetching is done by date
-rather than by security code — one request returns the whole cross-section for
-a day (~490 requests) instead of one request per stock (~4,000).
+The plan's other limits — 12-week data delay, **5 requests/minute** — are
+what actually shaped the fetching strategy. That rate limit is why everything
+is pulled by date instead of by security code: one request returns the whole
+day's cross-section (~490 requests total) rather than one request per stock
+(~4,000 requests, and a much longer wait).
 
 ## Setup
 
@@ -67,5 +75,7 @@ python src/discover.py  # verify the key and inspect live response schemas
 
 ## Sources
 
-Ball & Brown (1968); Bernard & Thomas (1989, 1990); MacKinlay (1997);
-Boehmer, Musumeci & Poulsen (1991).
+Standing on the shoulders of Ball & Brown (1968), Bernard & Thomas (1989,
+1990), MacKinlay (1997), and Boehmer, Musumeci & Poulsen (1991) — the drift
+itself, the standard event-study machinery, and the case for clustering
+standard errors by event date all come from this line of work.
