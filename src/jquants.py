@@ -1,7 +1,7 @@
 """
 J-Quants API v2 client: authentication, rate limiting, pagination, disk cache.
 
-Design notes (these are interview answers, not just comments):
+Design notes:
 
 1. AUTH. The v2 API uses a single API key in an `x-api-key` header. Older
    tutorials describe an email/password -> refreshToken -> idToken flow; that
