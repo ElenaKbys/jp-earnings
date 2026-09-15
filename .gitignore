@@ -10,6 +10,10 @@ data/
 *.duckdb
 *.duckdb.wal
 
+# Local run output — noise, not code
+discovery_output.txt
+fetch.log
+
 # Python
 __pycache__/
 *.py[cod]
